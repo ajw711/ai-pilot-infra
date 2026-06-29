@@ -42,8 +42,18 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
            {{- with .Values.env }}
           env:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            {{- range $key, $val := .Values.env.config }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+            {{- end }}
+
+            {{- range $key, $val := .Values.env.secret }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-pilot.fullname" . }}
+                  key: {{ $key }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
