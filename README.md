@@ -112,4 +112,4 @@ ai-pilot-infra/
 4. **Environments & GitOps 배포**: 
    - CI(GitHub Actions)에서 소스코드가 변경되면 이미지를 생성해 Docker Registry에 푸시합니다.
    - GitHub Actions가 `environments/{env}/values.yaml` 내의 이미지 태그 버전을 자동으로 변경(Commit)해 줍니다.
-   - ArgoCD가 이 매니페스트 변경을 감지하고, 클러스터에 배포된 애플리케이션의 버전을 실시간으로 동기화(Pull Sync)합니다.
+   - ArgoCD가 이 매니페스트 변경을 감지하고, 클러스터에 배포된 애플리케이션의 버전을 실시간으로 동기화(Pull Sync)합니다. 
