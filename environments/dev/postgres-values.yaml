@@ -1,0 +1,27 @@
+architecture: standalone
+
+auth:
+  enablePostgresUser: true
+  existingSecret: postgres-auth
+  secretKeys:
+    adminPasswordKey: postgres-password
+    userPasswordKey: password
+  username: mcp_user
+  database: ai_pilot
+
+primary:
+  persistence:
+    enabled: true
+    size: 8Gi
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+service:
+  ports:
+    postgresql: 5432
