@@ -1,6 +1,6 @@
 # AI-PILOT Infra Repository
 
-본 저장소는 **지식 검수 및 요약 위키 시스템(ai-pilot)**의 단일 노드 k3s 클러스터 환경 구축, 공통 운영 플랫폼 구성, 그리고 GitOps 기반 어플리케이션 배포 자동화를 위해 설계된 인프라 코어 리포지토리입니다.
+본 저장소는 지식 검수 및 요약 위키 시스템(ai-pilot)의 단일 노드 k3s 클러스터 환경 구축, 공통 운영 플랫폼 구성, 그리고 GitOps 기반 어플리케이션 배포 자동화를 위해 설계된 인프라 코어 리포지토리입니다.
 
 # ai-pilot-infra
 
@@ -112,4 +112,4 @@ ai-pilot-infra/
 4. **Environments & GitOps 배포**: 
    - CI(GitHub Actions)에서 소스코드가 변경되면 이미지를 생성해 Docker Registry에 푸시합니다.
    - GitHub Actions가 `environments/{env}/values.yaml` 내의 이미지 태그 버전을 자동으로 변경(Commit)해 줍니다.
-   - ArgoCD가 이 매니페스트 변경을 감지하고, 클러스터에 배포된 애플리케이션의 버전을 실시간으로 동기화(Pull Sync)합니다.
+   - ArgoCD가 이 매니페스트 변경을 감지하고, 클러스터에 배포된 애플리케이션의 버전을 실시간으로 동기화(Pull Sync)합니다. 
