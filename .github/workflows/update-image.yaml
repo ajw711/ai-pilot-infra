@@ -1,0 +1,42 @@
+name: Update Image Tag
+
+on:
+  repository_dispatch:
+    types:
+      - deploy-image-updated
+
+jobs:
+  update-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 인프라 저장소(ai-pilot-infra)를 전용 PAT 토큰 권한으로 안전하게 체크아웃
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.INFRA_DEPLOY_TOKEN }}
+
+      # 2. 구조 변경 변조를 위한 yq 엔진 다운로드 및 세팅
+      - name: Install yq
+        run: |
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+          sudo chmod +x /usr/bin/yq
+
+      # 3. ArgoCD가 배포 명세 렌더링 시 실제로 오버라이드해서 쳐다보는 dev 환경 설정 파일 변조
+      - name: Update image tag
+        run: |
+          yq -i '.image.tag = "${{ github.event.client_payload.tag }}"' environments/dev/values.yaml
+
+      # 4. 변경 사항이 있을 때만 안전하게 형상을 기록하고 push (무한 루프 및 빈 커밋 실패 방지)
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add environments/dev/values.yaml
+
+          # 변경사항이 없을 경우 0(정상) 종료하여 파이프라인 에러 방어
+          git diff --cached --quiet && exit 0
+
+          git commit -m "chore: update spring image tag to ${{ github.event.client_payload.tag }} [skip ci]"
+          git push origin main
