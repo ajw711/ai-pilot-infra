@@ -3,7 +3,7 @@ name: Update Image Tag
 on:
   repository_dispatch:
     types:
-      - deploy-image-updated
+      - deploy-backend-image-updated
 
 jobs:
   update-image:
