@@ -126,7 +126,6 @@ livenessProbe:
   periodSeconds: 30
 
 readinessProbe:
-  enabled: true
   httpGet:
     path: /
     port: http
