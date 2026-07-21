@@ -162,5 +162,5 @@ affinity: {}
 
 env:
   NATS_URL: nats://nats.nats.svc.cluster.local:4222
-  PORT: 8082
+  PORT: "8082"
   APP_NAME: cluster-agent
