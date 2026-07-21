@@ -1,0 +1,15 @@
+onfig:
+  cluster:
+    enabled: false
+
+jetstream:
+  enabled: true
+
+natsBox:
+  enabled: true
+
+service:
+  ports:
+    nats:
+      enabled: true
+      port: 4222
