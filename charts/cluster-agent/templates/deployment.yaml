@@ -36,13 +36,13 @@ spec:
         - name: {{ .Chart.Name }}
           env:
             - name: NATS_URL
-              value: {{ .Values.env.NATS_URL }}
+              value: "{{ .Values.env.NATS_URL }}"
 
             - name: PORT
-              value: {{ .Values.env.PORT }}
+              value: "{{ .Values.env.PORT }}"
 
             - name: APP_NAME
-              value: {{ .Values.env.APP_NAME }}
+              value: "{{ .Values.env.APP_NAME }}"
 
           {{- with .Values.securityContext }}
           securityContext:
