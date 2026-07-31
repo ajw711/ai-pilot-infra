@@ -52,6 +52,10 @@ service:
   port: 8080
 configMap:
   name: ai-pilot-config
+
+config:
+  springProfile: dev
+  natsUrl: nats://nats.nats.svc.cluster.local:4222
 secret:
   name: ai-pilot-secret
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
