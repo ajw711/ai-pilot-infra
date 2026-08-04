@@ -8,23 +8,21 @@ rules:
       - ""
     resources:
       - pods
+      - pods/log
+      - events
       - namespaces
+      - services
     verbs:
       - get
       - list
-      - watch
 
   - apiGroups:
       - apps
     resources:
       - deployments
-      - deployments/scale
     verbs:
       - get
       - list
-      - watch
-      - update
-      - patch
 
 
 ---
