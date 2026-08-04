@@ -3,7 +3,7 @@ name: Update Image Tag
 on:
   repository_dispatch:
     types:
-      - deploy-go-agent-image-updated
+      - deploy-cluster-agent-image-updated
 
 jobs:
   update-image:
