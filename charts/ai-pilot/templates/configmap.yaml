@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-pilot-config
+data:
+  SPRING_PROFILES_ACTIVE: {{ .Values.config.springProfile }}
+  NATS_URL: {{ .Values.config.natsUrl | quote }}
