@@ -10,7 +10,7 @@ image:
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: sha-e81dd56
+  tag: sha-a64277c
 # This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
 # This is to override the chart name.
@@ -53,7 +53,6 @@ service:
   actuatorPort: 8081
 configMap:
   name: ai-pilot-config
-
 config:
   springProfile: dev
   natsUrl: nats://nats.nats.svc.cluster.local:4222
