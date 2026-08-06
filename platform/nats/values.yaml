@@ -1,9 +1,9 @@
-onfig:
+config:
   cluster:
     enabled: false
 
-jetstream:
-  enabled: true
+  jetstream:
+    enabled: true
 
 natsBox:
   enabled: true
