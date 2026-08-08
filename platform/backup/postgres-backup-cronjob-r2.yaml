@@ -40,7 +40,8 @@ metadata:
   name: postgres-backup
   namespace: default
 spec:
-  schedule: "0 18 * * *"
+  timeZone: "Asia/Seoul"
+  schedule: "0 21 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
