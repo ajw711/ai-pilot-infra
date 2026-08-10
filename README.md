@@ -1,115 +1,103 @@
-# AI-PILOT Infra Repository
+# AI-Pilot Infra
 
-본 저장소는 지식 검수 및 요약 위키 시스템(ai-pilot)의 단일 노드 k3s 클러스터 환경 구축, 공통 운영 플랫폼 구성, 그리고 GitOps 기반 어플리케이션 배포 자동화를 위해 설계된 인프라 코어 리포지토리입니다.
+[ai-pilot](../ai-pilot) 애플리케이션을 위한 GitOps 기반 인프라 저장소입니다. k3s 홈랩 클러스터
+위에서 ArgoCD를 통해 애플리케이션을 배포하고, Prometheus/Grafana/Loki로 관찰합니다.
 
-# ai-pilot-infra
+## Cluster Overview
 
-GitOps Repository
+| 항목 | 내용 |
+|---|---|
+| Kubernetes | k3s (단일 노드, WSL2 기반) |
+| GitOps 엔진 | ArgoCD |
+| 패키지 관리 | Helm |
+| Ingress | Traefik |
+| 시크릿 관리 | External Secrets Operator + Azure Key Vault |
+| 모니터링 | Prometheus, Grafana, Loki |
+| 메시징 | NATS |
+| 원격 접근 | Tailscale VPN |
 
-## 목적
-- k3s 클러스터 관리
-- ArgoCD를 통한 GitOps
-- Helm Chart 관리
-- Platform 서비스 관리
-- Application 배포 관리
+## Repository Structure
 
-## Architecture
-
-GitHub
-   ↓
-ArgoCD
-   ↓
-k3s
-
----
-
-## 📂 폴더 구조 및 설계 철학
-
-저장소는 최초 셋업 단계부터 운영 서비스 배포까지의 생명주기(Lifecycle) 및 의존성 분리를 위해 다음과 같은 구조로 격리되어 관리됩니다.
-
-```text
+```
 ai-pilot-infra/
-├── bootstrap/          # 1회성 초기화 단계 (Ubuntu ➔ k3s ➔ Helm ➔ ArgoCD 설치 및 설정)
-├── platform/           # 공통 운영 플랫폼 (Helm values.yaml 파일들만 독립 제어)
-├── applications/       # ArgoCD 감시 및 배포 타겟 (ArgoCD Application 리소스 선언)
-├── charts/             # 직접 제작한 커스텀 서비스 Helm Chart (개발 소스 배포용)
-└── environments/       # 개발(dev) 및 운영(prod) 환경별 이미지 태그 및 환경 변수 격리
+├── .github/workflows/   # 이미지 태그 자동 갱신 워크플로우
+│   ├── update-backend-image-tag.yaml
+│   ├── update-frontend-image-tag.yaml
+│   └── update-go-agent-image-tag.yaml
+├── bootstrap/           # 클러스터 최초 구축 시 1회성 설치 가이드 (k3s → Helm → ArgoCD)
+├── applications/        # ArgoCD Application 매니페스트 (배포 대상 정의)
+│   ├── cluster-agent.yaml
+│   ├── frontend.yaml
+│   └── postgres.yaml
+├── charts/              # 컴포넌트별 Helm 차트
+│   ├── ai-pilot/            # Spring Boot 백엔드
+│   ├── ai-pilot-frontend/   # React 프론트엔드
+│   └── cluster-agent/       # Go Cluster Agent
+├── environments/        # 환경별(dev/prod) 공용 서비스 Helm values
+│   └── dev/
+│       ├── loki-values.yaml
+│       ├── monitoring-values.yaml
+│       ├── postgres-values.yaml
+│       └── promtail-values.yaml
+├── platform/            # 플랫폼 레벨 공통 리소스
+│   ├── backup/           # DB 백업 CronJob
+│   ├── nats/             # NATS 메시징
+│   └── secrets/          # SecretStore, ExternalSecret
+└── docs/                # 운영 문서 (runbooks, troubleshooting)
 ```
 
----
+세 개의 애플리케이션 컴포넌트(backend, frontend, go-agent)는 각각 독립적인 이미지 태그 갱신
+워크플로우를 가지고 있어, 한 컴포넌트만 변경되어도 다른 컴포넌트의 배포에 영향을 주지 않습니다.
 
-## 🎯 각 디렉토리의 역할 상세
+## GitOps Flow
 
-### 1. `bootstrap/` (초기 1회성 셋업)
-* **목적**: 인프라 가동을 위해 클러스터 생성부터 배포 엔진 가동까지 단 한 번만 실행하는 초기 구축 작업 스크립트와 가이드를 모아둡니다.
-* **설계 이유**: 인프라 운영 과정에서 수시로 변경되는 파일들과 매번 실행할 필요가 없는 부트스트랩 스크립트를 분리하여 인프라의 복잡도를 낮춥니다.
-* **주요 구성**:
-  ```text
-  bootstrap/
-  ├── install-k3s.sh       # k3s 설치 및 kubeconfig 권한 구성 스크립트
-  ├── install-helm.sh      # Helm CLI 설치 스크립트
-  ├── install-argocd.sh    # ArgoCD 엔진 구성 및 외부 포트 노출 스크립트
-  └── README.md            # 부트스트랩 상세 가이드 문서
-  ```
+애플리케이션 코드가 푸시된 순간부터 실제 클러스터에 반영되기까지의 전체 흐름입니다.
 
-### 2. `platform/` (공통 운영 플랫폼 - 선행 인프라)
-* **목적**: 서비스 가동 전에 쿠버네티스 클러스터 위에 기본 탑재되어야 하는 공통 모듈 및 미들웨어를 관리합니다.
-* **설계 이유**: 플랫폼 리소스들은 오픈소스 차트를 그대로 사용하므로, 복잡한 설치 템플릿을 직접 다루지 않고 오직 **Helm values** 설정 파일들만을 선언적으로 정의하여 가볍게 관리합니다.
-* **주요 구성**:
-  ```text
-  platform/
-  ├── ingress-nginx/       # NGINX 인그레스 컨트롤러 values.yaml
-  ├── prometheus/          # 프로메테우스 수집기 values.yaml
-  ├── grafana/             # 그라파나 대시보드 values.yaml
-  ├── loki/                # 로키 로그 수집기 values.yaml
-  ├── nats/                # NATS 메시지 브로커 values.yaml
-  └── cert-manager/        # SSL 인증서 발급 모듈 values.yaml
-  ```
+```mermaid
+flowchart TD
+    Dev[개발자: git push origin main] --> CI[GitHub Actions CI<br/>앱 소스 저장소]
+    CI --> Build[빌드 및 테스트<br/>Gradle / Go / Vite]
+    Build --> Docker[Docker 이미지 빌드<br/>GHCR 푸시<br/>태그: sha-XXXXXXX]
+    Docker --> Dispatch[Repository Dispatch 이벤트 발송<br/>ai-pilot-infra로 전달]
 
-### 3. `applications/` (ArgoCD 동기화 대상 정의)
-* **목적**: ArgoCD 배포 엔진이 변경 사항을 감시하여 실제 쿠버네티스 클러스터 상태와 일치(Sync)시키는 타겟 리소스 파일들을 모아둡니다.
-* **설계 이유**: 배포될 모든 컴포넌트들을 각각의 ArgoCD Application YAML 파일로 관리하여, 서비스 컴포넌트를 독립적으로 배포 및 모니터링할 수 있게 만듭니다.
-* **주요 구성**:
-  ```text
-  applications/
-  ├── ai-pilot.yaml        # ai-pilot 비즈니스 서비스 ArgoCD App
-  ├── gateway.yaml         # 게이트웨이 서비스 ArgoCD App
-  ├── grafana.yaml         # 그라파나 플랫폼 ArgoCD App
-  └── nats.yaml            # NATS 플랫폼 ArgoCD App
-  ```
+    Dispatch --> InfraCI[인프라 저장소 워크플로우 자동 구동]
+    InfraCI --> UpdateTag[yq로 charts/*/values.yaml의<br/>image.tag를 sha-XXXXXXX로 갱신]
+    UpdateTag --> AutoCommit[자동 commit & push<br/>chore: update image tag]
 
-### 4. `charts/` (자체 개발 커스텀 Helm Chart)
-* **목적**: 우리가 직접 개발한 비즈니스 애플리케이션들을 쿠버네티스에 패키징하여 배포하기 위한 커스텀 Helm 차트 템플릿입니다.
-* **설계 이유**: 다른 오픈소스 플랫폼과 달리, 사내 비즈니스 소스코드는 자주 변경되고 템플릿 구조를 직접 커스터마이징해야 하므로 독립된 차트 리포지토리 형태로 다룹니다.
-* **주요 구성**:
-  ```text
-  charts/
-  ├── ai-pilot/            # ai-pilot 웹 어플리케이션 용 Helm Chart
-  └── gateway/             # 게이트웨이 서비스 용 Helm Chart
-  ```
+    AutoCommit --> ArgoDetect[ArgoCD가 변경 감지<br/>상태: OutOfSync]
+    ArgoDetect -->|cluster-agent / postgres / frontend| AutoSync[automated sync<br/>자동 반영]
+    ArgoDetect -->|ai-pilot Spring Boot| ManualSync[개발자가 ArgoCD UI에서<br/>Sync 버튼 수동 클릭]
+    AutoSync --> Rolling[Helm 템플릿 렌더링 후<br/>Rolling Update 배포]
+    ManualSync --> Rolling
+```
 
-### 5. `environments/` (환경 격리 및 릴리즈 태그 관리 - 가장 중요 🌟)
-* **목적**: 동일한 소스코드와 템플릿을 사용하되, 배포 타겟 환경(dev, prod 등)에 따라 주입될 고유 환경 변수와 이미지 태그 버전을 완전히 격리합니다.
-* **설계 이유**: 빌드 릴리즈 단계를 환경별로 유연하게 제어하기 위함입니다.
-  - **`environments/dev/`**: 신속한 피드백을 위해 수시로 빌드되는 `image.tag: latest`를 주로 바라봅니다.
-  - **`environments/prod/`**: 검증 및 릴리즈가 완료된 안정적인 고유 버전 `image.tag: v1.0.3`으로 지정하여 운영 환경에 무분별한 배포가 되지 않도록 제어합니다.
-* **주요 구성**:
-  ```text
-  environments/
-  ├── dev/
-  │   └── values.yaml      # 개발 환경 오버라이드 values (예: tag: latest)
-  └── prod/
-      └── values.yaml      # 운영 환경 오버라이드 values (예: tag: v1.0.3)
-  ```
+**핵심 포인트**
 
----
+- backend / frontend / go-agent 세 컴포넌트가 각각 독립된 CI 파이프라인과 이미지 태그 갱신
+  워크플로우(`.github/workflows/update-*-image-tag.yaml`)를 가지고 있어, 한 컴포넌트만 변경돼도
+  다른 컴포넌트의 배포에 영향을 주지 않습니다.
+- 이미지 빌드부터 인프라 저장소의 `values.yaml` 갱신까지는 완전 자동화되어 있습니다
+  (GitHub Actions의 Repository Dispatch로 두 저장소가 연결됨).
+- **컴포넌트별 ArgoCD Sync 정책은 다음과 같이 다릅니다.**
 
-## 🚀 전체 설치 및 파이프라인 작동 흐름
+  | 컴포넌트 | Application 정의 | Sync 정책 |
+  |---|---|---|
+  | cluster-agent | `applications/cluster-agent.yaml` (Git 관리) | `automated` (prune + selfHeal) |
+  | postgres | `applications/postgres.yaml` (Git 관리) | `automated` (prune + selfHeal) |
+  | frontend | `applications/frontend.yaml` (Git 관리) | `automated` |
+  | ai-pilot (Spring Boot) | ArgoCD UI에서 직접 생성 (Git 미관리) | 수동 Sync |
 
-1. **Bootstrap 단계**: [bootstrap/README.md](file:///C:/personal/ai-pilot-infra/bootstrap/README.md)에 따라 로컬 노드(k3s)를 구성하고 ArgoCD를 올립니다.
-2. **Platform 단계**: 클러스터 위에 `platform/`에 명시된 Helm values를 적용하여 Ingress, NATS, Monitoring 인프라 서비스를 먼저 실행합니다.
-3. **ArgoCD App 등록**: `applications/` 폴더 내에 있는 Application YAML 파일들을 적용하여 ArgoCD에게 배포 경로를 알려줍니다.
-4. **Environments & GitOps 배포**: 
-   - CI(GitHub Actions)에서 소스코드가 변경되면 이미지를 생성해 Docker Registry에 푸시합니다.
-   - GitHub Actions가 `environments/{env}/values.yaml` 내의 이미지 태그 버전을 자동으로 변경(Commit)해 줍니다.
-   - ArgoCD가 이 매니페스트 변경을 감지하고, 클러스터에 배포된 애플리케이션의 버전을 실시간으로 동기화(Pull Sync)합니다. 
+  ai-pilot(Spring Boot)의 Application 리소스만 저장소에 선언적으로 존재하지 않고 ArgoCD UI로
+  직접 생성되어 있어, 다른 컴포넌트와 달리 GitOps 관리 범위 밖에 있습니다. 이 부분을
+  `applications/ai-pilot.yaml`로 코드화하고 auto-sync 여부를 결정하는 것이 향후 개선 과제입니다.
+- 이미지 태그는 커밋 SHA(`sha-XXXXXXX`) 기준으로 관리되어, 배포된 버전과 소스 커밋을
+  1:1로 추적할 수 있습니다.
+
+## Runbooks & Troubleshooting
+
+- 장애 대응 절차: [docs/runbooks](./docs/runbooks)
+- 실제로 겪은 인프라 이슈 기록: [docs/troubleshooting](./docs/troubleshooting)
+
+## Related Repository
+
+애플리케이션 코드는 [ai-pilot](../ai-pilot) 저장소에서 관리합니다.
