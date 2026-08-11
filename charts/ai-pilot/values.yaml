@@ -70,6 +70,10 @@ ingress:
       paths:
         - path: /api
           pathType: Prefix
+    - host: ai-pilot.tail9eef6e.ts.net
+      paths:
+        - path: /api
+          pathType: Prefix
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
