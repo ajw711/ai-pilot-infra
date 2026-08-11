@@ -64,6 +64,10 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+    - host: ai-pilot.tail9eef6e.ts.net
+      paths:
+        - path: /
+          pathType: Prefix
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
